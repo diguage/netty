@@ -35,7 +35,6 @@ import io.netty.handler.codec.dns.TcpDnsResponseDecoder;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
-import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.Promise;
 import io.netty.util.internal.SystemPropertyUtil;
 import io.netty.util.internal.ThrowableUtil;
@@ -62,8 +61,7 @@ abstract class DnsQueryContext {
 
     private static final TcpDnsQueryEncoder TCP_ENCODER = new TcpDnsQueryEncoder();
 
-    private final Future<? extends Channel> channelReadyFuture;
-    private final Channel channel;
+    private final ChannelFuture channelFuture;
     private final InetSocketAddress nameServerAddr;
     private final DnsQueryContextManager queryContextManager;
     private final Promise<AddressedEnvelope<DnsResponse, InetSocketAddress>> promise;
@@ -83,8 +81,7 @@ abstract class DnsQueryContext {
 
     private int id = Integer.MIN_VALUE;
 
-    DnsQueryContext(Channel channel,
-                    Future<? extends Channel> channelReadyFuture,
+    DnsQueryContext(ChannelFuture channelFuture,
                     InetSocketAddress nameServerAddr,
                     DnsQueryContextManager queryContextManager,
                     int maxPayLoadSize,
@@ -95,9 +92,8 @@ abstract class DnsQueryContext {
                     Promise<AddressedEnvelope<DnsResponse, InetSocketAddress>> promise,
                     Bootstrap socketBootstrap,
                     boolean retryWithTcpOnTimeout) {
-        this.channel = checkNotNull(channel, "channel");
+        this.channelFuture = checkNotNull(channelFuture, "channelFuture");
         this.queryContextManager = checkNotNull(queryContextManager, "queryContextManager");
-        this.channelReadyFuture = checkNotNull(channelReadyFuture, "channelReadyFuture");
         this.nameServerAddr = checkNotNull(nameServerAddr, "nameServerAddr");
         this.question = checkNotNull(question, "question");
         this.additionals = checkNotNull(additionals, "additionals");
@@ -179,7 +175,7 @@ abstract class DnsQueryContext {
             // We did exhaust the id space, fail the query
             IllegalStateException e = new IllegalStateException("query ID space exhausted: " + question());
             finishFailure("failed to send a query via " + protocol(), e, false);
-            return channel.newFailedFuture(e);
+            return channelFuture.channel().newFailedFuture(e);
         }
 
         // Ensure we remove the id from the QueryContextManager once the query completes.
@@ -198,7 +194,7 @@ abstract class DnsQueryContext {
                     // This query was failed due a timeout or cancellation. Let's delay the removal of the id to reduce
                     // the risk of reusing the same id again while the remote nameserver might send the response after
                     // the timeout.
-                    channel.eventLoop().schedule(new Runnable() {
+                    channelFuture.channel().eventLoop().schedule(new Runnable() {
                         @Override
                         public void run() {
                             removeFromContextManager(nameServerAddr);
@@ -228,7 +224,7 @@ abstract class DnsQueryContext {
 
         if (logger.isDebugEnabled()) {
             logger.debug("{} WRITE: {}, [{}: {}], {}",
-                    channel, protocol(), id, nameServerAddr, question);
+                    channelFuture.channel(), protocol(), id, nameServerAddr, question);
         }
 
         return sendQuery(query, flush);
@@ -241,19 +237,19 @@ abstract class DnsQueryContext {
     }
 
     private ChannelFuture sendQuery(final DnsQuery query, final boolean flush) {
-        final ChannelPromise writePromise = channel.newPromise();
-        if (channelReadyFuture.isSuccess()) {
+        final ChannelPromise writePromise = channelFuture.channel().newPromise();
+        if (channelFuture.isSuccess()) {
             writeQuery(query, flush, writePromise);
         } else {
-            Throwable cause = channelReadyFuture.cause();
+            Throwable cause = channelFuture.cause();
             if (cause != null) {
                 // the promise failed before so we should also fail this query.
                 failQuery(query, cause, writePromise);
             } else {
                 // The promise is not complete yet, let's delay the query.
-                channelReadyFuture.addListener(new GenericFutureListener<Future<? super Channel>>() {
+                channelFuture.addListener(new ChannelFutureListener() {
                     @Override
-                    public void operationComplete(Future<? super Channel> future) {
+                    public void operationComplete(ChannelFuture future) {
                         if (future.isSuccess()) {
                             // If the query is done in a late fashion (as the channel was not ready yet) we always flush
                             // to ensure we did not race with a previous flush() that was done when the Channel was not
@@ -281,8 +277,8 @@ abstract class DnsQueryContext {
 
     private void writeQuery(final DnsQuery query,
                             final boolean flush, ChannelPromise promise) {
-        final ChannelFuture writeFuture = flush ? channel.writeAndFlush(query, promise) :
-                channel.write(query, promise);
+        final ChannelFuture writeFuture = flush ? channelFuture.channel().writeAndFlush(query, promise) :
+                channelFuture.channel().write(query, promise);
         if (writeFuture.isDone()) {
             onQueryWriteCompletion(queryTimeoutMillis, writeFuture);
         } else {
@@ -304,7 +300,7 @@ abstract class DnsQueryContext {
 
         // Schedule a query timeout task if necessary.
         if (queryTimeoutMillis > 0) {
-            timeoutFuture = channel.eventLoop().schedule(new Runnable() {
+            timeoutFuture = channelFuture.channel().eventLoop().schedule(new Runnable() {
                 @Override
                 public void run() {
                     if (promise.isDone()) {
@@ -329,10 +325,10 @@ abstract class DnsQueryContext {
             final DnsResponse res = envelope.content();
             if (res.count(DnsSection.QUESTION) != 1) {
                 logger.warn("{} Received a DNS response with invalid number of questions. Expected: 1, found: {}",
-                        channel, envelope);
+                        channelFuture.channel(), envelope);
             } else if (!question().equals(res.recordAt(DnsSection.QUESTION))) {
                 logger.warn("{} Received a mismatching DNS response. Expected: [{}], found: {}",
-                        channel, question(), envelope);
+                        channelFuture.channel(), question(), envelope);
             } else if (trySuccess(envelope)) {
                 return; // Ownership transferred, don't release
             }
@@ -406,7 +402,7 @@ abstract class DnsQueryContext {
                 final Channel tcpCh = future.channel();
                 Promise<AddressedEnvelope<DnsResponse, InetSocketAddress>> promise =
                         tcpCh.eventLoop().newPromise();
-                final TcpDnsQueryContext tcpCtx = new TcpDnsQueryContext(tcpCh, channelReadyFuture,
+                final TcpDnsQueryContext tcpCtx = new TcpDnsQueryContext(future,
                         (InetSocketAddress) tcpCh.remoteAddress(), queryContextManager, 0,
                         recursionDesired, queryTimeoutMillis, question(), additionals, promise);
                 tcpCh.pipeline().addLast(TCP_ENCODER);

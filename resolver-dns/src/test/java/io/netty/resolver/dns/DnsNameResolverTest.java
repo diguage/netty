@@ -138,7 +138,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -2764,22 +2763,6 @@ public class DnsNameResolverTest {
         } finally {
             resolver.close();
             server.stop();
-        }
-    }
-
-    @Test
-    public void testChannelFactoryException() {
-        final IllegalStateException exception = new IllegalStateException();
-        try {
-            newResolver().channelFactory(new ChannelFactory<DatagramChannel>() {
-                @Override
-                public DatagramChannel newChannel() {
-                    throw exception;
-                }
-            }).build();
-            fail();
-        } catch (Exception e) {
-            assertSame(exception, e);
         }
     }
 

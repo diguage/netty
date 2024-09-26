@@ -19,6 +19,7 @@ import java.net.UnknownHostException;
 import java.util.List;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoop;
 import io.netty.handler.codec.dns.DnsQuestion;
 import io.netty.handler.codec.dns.DnsRecord;
@@ -29,34 +30,33 @@ import io.netty.util.concurrent.Promise;
 
 final class DnsRecordResolveContext extends DnsResolveContext<DnsRecord> {
 
-    DnsRecordResolveContext(DnsNameResolver parent, Channel channel, Future<? extends Channel> channelReadyFuture,
+    DnsRecordResolveContext(DnsNameResolver parent, ChannelFuture channelFuture,
                             Promise<?> originalPromise, DnsQuestion question, DnsRecord[] additionals,
                             DnsServerAddressStream nameServerAddrs, int allowedQueries) {
-        this(parent, channel, channelReadyFuture, originalPromise, question.name(), question.dnsClass(),
+        this(parent, channelFuture, originalPromise, question.name(), question.dnsClass(),
              new DnsRecordType[] { question.type() },
              additionals, nameServerAddrs, allowedQueries);
     }
 
-    private DnsRecordResolveContext(DnsNameResolver parent, Channel channel,
-                                    Future<? extends Channel> channelReadyFuture, Promise<?> originalPromise,
+    private DnsRecordResolveContext(DnsNameResolver parent, ChannelFuture channelFuture,
+                                    Promise<?> originalPromise,
                                     String hostname, int dnsClass, DnsRecordType[] expectedTypes,
                                     DnsRecord[] additionals,
                                     DnsServerAddressStream nameServerAddrs,
                                     int allowedQueries) {
-        super(parent, channel, channelReadyFuture, originalPromise, hostname, dnsClass, expectedTypes,
+        super(parent, channelFuture, originalPromise, hostname, dnsClass, expectedTypes,
                 additionals, nameServerAddrs, allowedQueries);
     }
 
     @Override
-    DnsResolveContext<DnsRecord> newResolverContext(DnsNameResolver parent, Channel channel,
-                                                    Future<? extends Channel> channelReadyFuture,
+    DnsResolveContext<DnsRecord> newResolverContext(DnsNameResolver parent, ChannelFuture channelFuture,
                                                     Promise<?> originalPromise,
                                                     String hostname,
                                                     int dnsClass, DnsRecordType[] expectedTypes,
                                                     DnsRecord[] additionals,
                                                     DnsServerAddressStream nameServerAddrs,
                                                     int allowedQueries) {
-        return new DnsRecordResolveContext(parent, channel, channelReadyFuture, originalPromise, hostname, dnsClass,
+        return new DnsRecordResolveContext(parent, channelFuture, originalPromise, hostname, dnsClass,
                                            expectedTypes, additionals, nameServerAddrs, allowedQueries);
     }
 
