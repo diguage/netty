@@ -77,6 +77,7 @@ public final class DnsNameResolverBuilder {
     private boolean decodeIdn = true;
 
     private int maxNumConsolidation;
+    private DnsNameResolverChannelStrategy channelStrategy = DnsNameResolverChannelStrategy.Same;
 
     /**
      * Creates a new builder.
@@ -573,6 +574,17 @@ public final class DnsNameResolverBuilder {
     }
 
     /**
+     * Set the strategy that is used to determine how a {@link DatagramChannel} is used by the resolver.
+     *
+     * @param channelStrategy   the {@link DnsNameResolverChannelStrategy} to use when doing queries.
+     * @return {@code this}
+     */
+    public DnsNameResolverBuilder channelStrategy(DnsNameResolverChannelStrategy channelStrategy) {
+        this.channelStrategy = ObjectUtil.checkNotNull(channelStrategy, "channelStrategy");
+        return this;
+    }
+
+    /**
      * Returns a new {@link DnsNameResolver} instance.
      *
      * @return a {@link DnsNameResolver}
@@ -625,7 +637,8 @@ public final class DnsNameResolverBuilder {
                 ndots,
                 decodeIdn,
                 completeOncePreferredResolved,
-                maxNumConsolidation);
+                maxNumConsolidation,
+                channelStrategy);
     }
 
     /**
@@ -695,6 +708,10 @@ public final class DnsNameResolverBuilder {
         copiedBuilder.completeOncePreferredResolved(completeOncePreferredResolved);
         copiedBuilder.localAddress(localAddress);
         copiedBuilder.consolidateCacheSize(maxNumConsolidation);
+
+        if (channelStrategy != null) {
+            copiedBuilder.channelStrategy(channelStrategy);
+        }
         return copiedBuilder;
     }
 }

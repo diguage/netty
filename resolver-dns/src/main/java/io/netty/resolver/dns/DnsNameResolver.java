@@ -377,7 +377,7 @@ public class DnsNameResolver extends InetNameResolver {
              dnsQueryLifecycleObserverFactory, queryTimeoutMillis, resolvedAddressTypes, recursionDesired,
              maxQueriesPerResolve, traceEnabled, maxPayloadSize, optResourceEnabled, hostsFileEntriesResolver,
              dnsServerAddressStreamProvider, new ThreadLocalNameServerAddressStream(dnsServerAddressStreamProvider),
-             searchDomains, ndots, decodeIdn, false, 0);
+             searchDomains, ndots, decodeIdn, false, 0, DnsNameResolverChannelStrategy.Same);
     }
 
     @SuppressWarnings("deprecation")
@@ -405,7 +405,7 @@ public class DnsNameResolver extends InetNameResolver {
             int ndots,
             boolean decodeIdn,
             boolean completeOncePreferredResolved,
-            int maxNumConsolidation) {
+            int maxNumConsolidation, DnsNameResolverChannelStrategy channelStrategy) {
         super(eventLoop);
         this.queryTimeoutMillis = queryTimeoutMillis >= 0
             ? queryTimeoutMillis
@@ -500,7 +500,19 @@ public class DnsNameResolver extends InetNameResolver {
         if (localAddress == null) {
             bootstrap.option(ChannelOption.DATAGRAM_CHANNEL_ACTIVE_ON_REGISTRATION, true);
         }
-        resolveChannelProvider = new DnsResolveNewChannelProvider(bootstrap, localAddress);
+        this.resolveChannelProvider = newProvider(channelStrategy, bootstrap, localAddress);
+    }
+
+    private static DnsResolveChannelProvider newProvider(DnsNameResolverChannelStrategy channelStrategy,
+                                                         Bootstrap bootstrap, SocketAddress localAddress) {
+        switch (channelStrategy) {
+            case Same:
+                return new DnsResolveSameChannelProvider(bootstrap, localAddress);
+            case NewPerResolve:
+                return new DnsResolveNewChannelProvider(bootstrap, localAddress);
+            default:
+                throw new IllegalArgumentException();
+        }
     }
 
     static InternetProtocolFamily preferredAddressType(ResolvedAddressTypes resolvedAddressTypes) {
@@ -1452,44 +1464,6 @@ public class DnsNameResolver extends InetNameResolver {
         }
     }
 
-    private static final class DnsResolveSameChannelUntilTimeoutProvider implements DnsResolveChannelProvider {
-        private final Bootstrap bootstrap;
-        private final SocketAddress localAddress;
-        private ChannelFuture resolveChannelFuture;
-
-        DnsResolveSameChannelUntilTimeoutProvider(Bootstrap bootstrap, SocketAddress localAddress) {
-            this.bootstrap = bootstrap;
-            this.localAddress = localAddress;
-        }
-
-        @Override
-        public ChannelFuture nextResolveChannel() {
-            if (resolveChannelFuture == null) {
-                resolveChannelFuture = registerOrBind(bootstrap, localAddress);
-            }
-            return resolveChannelFuture;
-        }
-
-        @Override
-        public void resolveComplete(ChannelFuture resolveChannelFuture, Future<?> resolveFuture) {
-            if (isTimeoutError(resolveFuture.cause())) {
-                this.resolveChannelFuture = null;
-                // Let's close the Channel now... This might also cause a few other failures for in-progress queries
-                // We could also consider to count how many outstanding resolves we have and only after we processed
-                // all of them close the Channel.
-                resolveChannelFuture.channel().close();
-            }
-        }
-
-        @Override
-        public void close() {
-            ChannelFuture resolveChannelFuture = this.resolveChannelFuture;
-            if (resolveChannelFuture != null) {
-                resolveChannelFuture.channel().close();
-            }
-        }
-    }
-
     private static final class DnsResolveNewChannelProvider implements DnsResolveChannelProvider {
 
         private final Bootstrap bootstrap;
@@ -1513,7 +1487,7 @@ public class DnsNameResolver extends InetNameResolver {
 
         @Override
         public void close() {
-            // Noop for now.
+            // Do nothing
         }
     }
 
