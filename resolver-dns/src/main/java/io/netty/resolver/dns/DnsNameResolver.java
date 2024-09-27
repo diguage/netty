@@ -485,7 +485,7 @@ public class DnsNameResolver extends InetNameResolver {
             inflightLookups = null;
         }
 
-        final DnsResponseHandler responseHandler = new DnsResponseHandler();
+        final DnsResponseHandler responseHandler = new DnsResponseHandler(queryContextManager);
         Bootstrap bootstrap = new Bootstrap()
                 .channelFactory(channelFactory)
                 .group(eventLoop)
@@ -1353,7 +1353,13 @@ public class DnsNameResolver extends InetNameResolver {
         return dnsServerAddressStreamProvider.nameServerAddressStream(hostname);
     }
 
-    private final class DnsResponseHandler extends ChannelInboundHandlerAdapter {
+    private static final class DnsResponseHandler extends ChannelInboundHandlerAdapter {
+
+        private final DnsQueryContextManager queryContextManager;
+
+        DnsResponseHandler(DnsQueryContextManager queryContextManager) {
+            this.queryContextManager = queryContextManager;
+        }
 
         @Override
         public boolean isSharable() {
@@ -1449,7 +1455,7 @@ public class DnsNameResolver extends InetNameResolver {
     private static final class DnsResolveSameChannelUntilTimeoutProvider implements DnsResolveChannelProvider {
         private final Bootstrap bootstrap;
         private final SocketAddress localAddress;
-        private volatile ChannelFuture resolveChannelFuture;
+        private ChannelFuture resolveChannelFuture;
 
         DnsResolveSameChannelUntilTimeoutProvider(Bootstrap bootstrap, SocketAddress localAddress) {
             this.bootstrap = bootstrap;
