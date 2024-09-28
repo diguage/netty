@@ -574,9 +574,9 @@ public final class DnsNameResolverBuilder {
     }
 
     /**
-     * Set the strategy that is used to determine how a {@link DatagramChannel} is used by the resolver.
+     * Set the strategy that is used to determine how a {@link DatagramChannel} is used by the resolver for sending queries over UDP protocol.
      *
-     * @param channelStrategy   the {@link DnsNameResolverChannelStrategy} to use when doing queries.
+     * @param channelStrategy   the {@link DnsNameResolverChannelStrategy} to use when doing queries over UDP protocol.
      * @return {@code this}
      */
     public DnsNameResolverBuilder channelStrategy(DnsNameResolverChannelStrategy channelStrategy) {
