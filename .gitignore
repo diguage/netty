@@ -55,3 +55,7 @@ mainframer
 # exclude file created by the flatten plugin
 .flattened-pom.xml
 .java-version
+
+truman/cfg/gems
+*.otf
+*.ttf

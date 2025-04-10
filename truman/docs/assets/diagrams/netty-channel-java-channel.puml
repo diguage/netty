@@ -1,0 +1,13 @@
+@startuml
+header D瓜哥 · ""https://www.diguage.com""
+
+rectangle NioServerSocketChannel {
+   agent ServerSocketChannel
+}
+
+rectangle NioSocketChannel {
+   agent SocketChannel
+}
+
+footer D瓜哥 · ""https://www.diguage.com"" · 出品
+@enduml

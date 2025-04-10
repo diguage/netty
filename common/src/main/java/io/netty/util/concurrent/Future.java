@@ -81,17 +81,22 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
     Future<V> removeListeners(GenericFutureListener<? extends Future<? super V>>... listeners);
 
     /**
+     * 阻塞等待任务结束，如果任务失败，将“导致失败的异常”重新抛出来
+     *
      * Waits for this future until it is done, and rethrows the cause of the failure if this future
      * failed.
      */
     Future<V> sync() throws InterruptedException;
 
     /**
+     * 不响应中断的 sync()
+     *
      * Waits for this future until it is done, and rethrows the cause of the failure if this future
      * failed.
      */
     Future<V> syncUninterruptibly();
 
+    // await开头的相关方法，阻塞等待任务结束，和 sync() 功能是一样的，不过如果任务失败，它不会抛出执行过程中的异常
     /**
      * Waits for this future to be completed.
      *
@@ -152,6 +157,8 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
     boolean awaitUninterruptibly(long timeoutMillis);
 
     /**
+     * 获取执行结果，不阻塞。
+     *
      * Return the result without blocking. If the future is not done yet this will return {@code null}.
      * <p>
      * As it is possible that a {@code null} value is used to mark the future as successful you also need to check
@@ -160,6 +167,12 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
     V getNow();
 
     /**
+     * 取消任务执行，如果取消成功，任务会因为 CancellationException 异常而导致失败
+     *     也就是 isSuccess()==false，同时上面的 cause() 方法返回 CancellationException 的实例。
+     *
+     * mayInterruptIfRunning 说的是：是否对正在执行该任务的线程进行中断(这样才能停止该任务的执行)，
+     *     似乎 Netty 中 Future 接口的各个实现类，都没有使用这个参数
+     *
      * {@inheritDoc}
      *
      * If the cancellation was successful it will fail the future with a {@link CancellationException}.

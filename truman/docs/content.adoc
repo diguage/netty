@@ -1,0 +1,140 @@
+[#content-part]
+= 启动流程
+
+plantuml::assets/diagrams/netty-channel-java-channel.puml[{diagram_attr}]
+
+
+== 参考资料
+
+. https://www.javadoop.com/post/netty-1[认真的 Netty 源码解析（一）^]
+. https://www.javadoop.com/post/netty-2[认真的 Netty 源码解析（二）^]
+
+// 这是正文部分！
+//
+// 行内高亮： `java`。
+//
+// == 代码高亮
+//
+// [{java_source_attr}]
+// ----
+// include::{source_basedir}/EchoServerHandler.java[]
+// ----
+//
+// == Tab 页
+//
+// [tabs]
+// ====
+// Tab A:: Contents of Tab A.
+//
+// Tab B::
+// +
+// Contents of Tab B.
+//
+// Tab C::
+// +
+// --
+// Contents of Tab C.
+//
+// Contains more than one block.
+// --
+//
+// Tab D::
+// +
+// --
+// [source,java]
+// ----
+// public class Test {
+//     public static void main(String[] args) {
+//         System.out.println("Hello");
+//     }
+// }
+// ----
+// --
+// ====
+//
+// === 嵌套 Tab 页
+//
+// // https://github.com/asciidoctor/asciidoctor-tabs
+//
+// [tabs]
+// ======
+// Tab A::
+// +
+// Selecting Tab A reveals a tabset with Tab Y and Tab Z.
+// +
+// [tabs]
+// ====
+// Tab Y:: Contents of Tab Y, nested inside Tab A.
+// Tab Z:: Contents of Tab Z, nested inside Tab A.
+// ====
+//
+// Tab B:: Just text.
+// ======
+//
+// == 图片
+//
+// === 外部图片
+//
+// plantuml::assets/diagrams/netty-channel-java-channel.puml[{diagram_attr}]
+//
+// // 查看支持字体
+// //[plantuml, {diagram_attr}]
+// //....
+// //@startuml
+// //listfonts This is a test. 这是一个测试。這是一個測試。
+// //@enduml
+// //....
+//
+// === 序列图
+//
+// seqdiag::assets/diagrams/seq.diag[{diagram_attr}]
+//
+// === 文内图片
+//
+// [plantuml, {diagram_attr}]
+// ....
+// @startuml
+// title "**装饰模式**"
+//
+// abstract class Component {
+//   + {abstract} operation() :void
+// }
+// note right: Component 是定义一个对象接口，\n可以给这些对象动态地添加职责。
+//
+// class ConcreteComponent {
+//   + operation() :void
+// }
+// note "ConcreteComponent 是定义了\n一个具体的对象，也可以给这个\n对象添加一些职责。" as ccn
+// ccn .. ConcreteComponent
+//
+// abstract class Decorator {
+//   - component :Component
+//   + {abstract} operation() :void
+// }
+// note "Decorator，装饰抽象类，\n继承了 Component，从外类\n来扩展 Component 的功能，\n但对于 Component 来说，\n是无需知道 Decorator 的存在的。" as dn
+// Decorator .. dn
+//
+// class ConcreteDecoratorA {
+//   + operation() :void
+// }
+//
+// class ConcreteDecoratorB {
+//   + operation() :void
+//   - addBehavior() :void
+// }
+// note "ConcreteDecorator 就是具体的装饰对象，\n起到给 Component 添加职责的功能。" as cdn
+// 'cdn .. ConcreteDecoratorA
+// 'cdn .. ConcreteDecoratorB
+// ConcreteDecoratorA .. cdn
+// ConcreteDecoratorB .. cdn
+//
+// Decorator "-component" o-- Component
+//
+// Component <|-- ConcreteComponent
+// Component <|-- Decorator
+// Decorator <|-- ConcreteDecoratorA
+// Decorator <|-- ConcreteDecoratorB
+//
+// footer D瓜哥 · https://www.diguage.com · 出品
+// @enduml
+// ....

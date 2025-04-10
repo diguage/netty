@@ -89,9 +89,11 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     protected AbstractNioChannel(Channel parent, SelectableChannel ch, NioIoOps readOps) {
         super(parent);
         this.ch = ch;
+        // 我们看到这里只是保存了 SelectionKey.OP_READ 这个信息，在后面的时候会用到
         this.readInterestOp = ObjectUtil.checkNotNull(readOps, "readOps").value;
         this.readOps = readOps;
         try {
+            // 设置 channel 的非阻塞模式
             ch.configureBlocking(false);
         } catch (IOException e) {
             try {
